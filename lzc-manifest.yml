@@ -1,0 +1,258 @@
+application:
+  subdomain: omnibox
+  multi_instance: false
+  public_path:
+    - /
+  entries:
+    - id: main
+      title: "OmniBox"
+      path: /
+    - id: mailpit
+      title: "Mailpit"
+      path: /
+      prefix_domain: mail
+  upstreams:
+    - location: /
+      backend: http://web:80/
+    - location: /
+      domain_prefix: mail
+      backend: http://mail-server:8025/
+  injects:
+    # 三阶段免密登录：捕获登录/注册请求凭据并持久化，之后自动填充
+    - id: capture-credentials
+      on: request
+      auth_required: false
+      when:
+        - /api/v1/users/login
+        - /api/v1/users/register
+        - /api/v1/users/sign-up
+        - /api/v1/auth
+      do: |
+        const payload = ctx.body.getJSON();
+        const user = payload && (payload.username || payload.email || payload.account);
+        if (user && payload.password) {
+          ctx.flow.set("pending_user", String(user));
+          ctx.flow.set("pending_pass", String(payload.password));
+        }
+    - id: persist-credentials
+      on: response
+      auth_required: false
+      when:
+        - /api/v1/users/login
+        - /api/v1/users/register
+        - /api/v1/users/sign-up
+        - /api/v1/auth
+      do: |
+        if (ctx.status >= 200 && ctx.status < 300) {
+          const user = ctx.flow.get("pending_user");
+          const pass = ctx.flow.get("pending_pass");
+          if (user && pass) {
+            ctx.persist.set("saved_user", user);
+            ctx.persist.set("saved_pass", pass);
+          }
+        }
+    - id: autofill-login
+      when:
+        - /
+      do:
+        - src: builtin://simple-inject-password
+          params:
+            user:
+              $persist: saved_user
+            password:
+              $persist: saved_pass
+    - id: open-save-chooser
+      on: browser
+      when:
+        - /*
+      do:
+        - src: file:///lzcapp/pkg/content/lazycat-injects/lzc-file-chooser-inject.js
+
+services:
+  web:
+    # upstream: ghcr.io/import-ai/omnibox-web:0.1.54
+    image: ghcr.1ms.run/import-ai/omnibox-web:0.1.54
+    depends_on:
+      - backend
+
+  backend:
+    # upstream: ghcr.io/import-ai/omnibox-backend:0.1.54
+    image: ghcr.1ms.run/import-ai/omnibox-backend:0.1.54
+    environment:
+      - ENV=prod
+      - OBB_LOG_LEVELS=error,warn,log
+      - OBB_JWT_SECRET={{ stable_secret "jwt_secret" }}
+      - OBB_JWT_EXPIRE=2678400s
+      - OBB_POSTGRES_URL=postgres://omnibox:{{ stable_secret "db_password" }}@postgres:5432/omnibox
+      - OBB_WIZARD_BASE_URL=http://wizard:8000
+      - OBB_MAIL_TRANSPORT=smtp://mail-server:1025
+      - OBB_MAIL_FROM=OmniBox <no-reply@lazycat.app>
+      - OBB_S3_ACCESS_KEY_ID=omnibox
+      - OBB_S3_SECRET_ACCESS_KEY={{ stable_secret "s3_secret" }}
+      - OBB_S3_ENDPOINT=http://minio:9000
+      - OBB_S3_PUBLIC_ENDPOINT=/minio
+      - OBB_S3_BUCKET=omnibox
+      - OBB_KAFKA_BROKER=kafka:9092
+      - OBB_KAFKA_CLIENT_ID=omnibox-backend
+      - OBB_ENABLED_APPLICATIONS=
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8000/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      - postgres
+      - weaviate
+      - minio
+      - mail-server
+      - kafka
+
+  wizard:
+    # upstream: ghcr.io/import-ai/omnibox-wizard:0.1.54
+    image: ghcr.1ms.run/import-ai/omnibox-wizard:0.1.54
+    environment:
+      - ENV=prod
+      - OBW_BACKEND_BASE_URL=http://backend:8000
+      - OBW_KAFKA_BROKER=kafka:9092
+      - OBW_VECTOR_DIMENSION=1536
+      - OBW_VECTOR_EMBEDDING_API_KEY={{ .U.openai_api_key }}
+      - OBW_VECTOR_EMBEDDING_BASE_URL={{ .U.openai_base_url }}
+      - OBW_VECTOR_EMBEDDING_MODEL=text-embedding-3-small
+      - OBW_GRIMOIRE_OPENAI_DEFAULT_API_KEY={{ .U.openai_api_key }}
+      - OBW_GRIMOIRE_OPENAI_DEFAULT_BASE_URL={{ .U.openai_base_url }}
+      - OBW_GRIMOIRE_OPENAI_DEFAULT_MODEL=gpt-4o
+      - OBW_VECTOR_WEAVIATE_HOST=weaviate
+      - OBW_VECTOR_WEAVIATE_PORT=50050
+      - OBW_VECTOR_WEAVIATE_GRPC_PORT=50051
+      - OBW_VECTOR_WEAVIATE_API_KEY=omnibox
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8000/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      - weaviate
+
+  wizard-worker:
+    # upstream: ghcr.io/import-ai/omnibox-wizard:0.1.54
+    image: ghcr.1ms.run/import-ai/omnibox-wizard:0.1.54
+    environment:
+      - ENV=prod
+      - OBW_BACKEND_BASE_URL=http://backend:8000
+      - OBW_KAFKA_BROKER=kafka:9092
+      - OBW_VECTOR_DIMENSION=1536
+      - OBW_VECTOR_EMBEDDING_API_KEY={{ .U.openai_api_key }}
+      - OBW_VECTOR_EMBEDDING_BASE_URL={{ .U.openai_base_url }}
+      - OBW_VECTOR_EMBEDDING_MODEL=text-embedding-3-small
+      - OBW_VECTOR_WEAVIATE_HOST=weaviate
+      - OBW_VECTOR_WEAVIATE_PORT=50050
+      - OBW_VECTOR_WEAVIATE_GRPC_PORT=50051
+      - OBW_VECTOR_WEAVIATE_API_KEY=omnibox
+    entrypoint: uv run --no-sync python3 main.py
+    command: --workers 1
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      - backend
+      - weaviate
+
+  postgres:
+    # upstream: docker.io/library/postgres:17.5
+    image: docker.1ms.run/library/postgres:17.5
+    environment:
+      - POSTGRES_DB=omnibox
+      - POSTGRES_USER=omnibox
+      - POSTGRES_PASSWORD={{ stable_secret "db_password" }}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -d omnibox -U omnibox"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    binds:
+      - /lzcapp/var/postgres:/var/lib/postgresql/data
+
+  minio:
+    # upstream: docker.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    image: docker.1ms.run/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=omnibox
+      - MINIO_ROOT_PASSWORD={{ stable_secret "s3_secret" }}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -I http://127.0.0.1:9000/minio/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    binds:
+      - /lzcapp/var/minio:/data
+
+  weaviate:
+    # upstream: cr.weaviate.io/semitechnologies/weaviate:1.36.0
+    image: docker.1ms.run/semitechnologies/weaviate:1.36.0
+    command: --host 0.0.0.0 --port 50050 --scheme http
+    working_dir: /go/pkg/mod
+    environment:
+      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=false
+      - AUTHENTICATION_APIKEY_ENABLED=true
+      - AUTHENTICATION_APIKEY_ALLOWED_KEYS=omnibox
+      - AUTHENTICATION_APIKEY_USERS=omnibox
+      - QUERY_DEFAULTS_LIMIT=25
+      - AUTOSCHEMA_ENABLED=false
+      - ENABLE_TOKENIZER_GSE_CH=true
+      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+      - CLUSTER_HOSTNAME=node-1
+      - LOG_LEVEL=warn
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:50050/v1/.well-known/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    binds:
+      - /lzcapp/var/weaviate:/var/lib/weaviate
+
+  kafka:
+    # upstream: docker.io/bitnamilegacy/kafka:4.0
+    image: docker.1ms.run/bitnamilegacy/kafka:4.0
+    user: "0:0"
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    binds:
+      - /lzcapp/var/kafka:/bitnami/kafka
+
+  mail-server:
+    # upstream: docker.io/axllent/mailpit:v1.29
+    image: docker.1ms.run/axllent/mailpit:v1.29
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8025 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+usage: |
+  OmniBox（小黑）是一站式 AI 知识库：浏览器插件/微信收藏网页与文件，端到端解析建索引，跨库问答与写作。
+  部署时需配置 OpenAI 兼容 API（embeddings 与对话模型），AI 问答与向量化功能依赖它。
+  首次注册的账号即管理员；免密登录会记住首次凭据。邮箱验证码在 Mailpit（应用内 8025 端口仅内部使用，注册验证码可在日志中查看）。

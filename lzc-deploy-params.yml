@@ -1,0 +1,23 @@
+params:
+  - id: openai_api_key
+    type: secret
+    name: "OpenAI API Key"
+    description: "OpenAI-compatible API key for embeddings and chat models (required for AI features)"
+    default_value: "sk-placeholder"
+    optional: true
+
+  - id: openai_base_url
+    type: string
+    name: "OpenAI Base URL"
+    description: "OpenAI-compatible API base URL, e.g. https://api.openai.com/v1"
+    default_value: "https://api.openai.com/v1"
+    optional: true
+
+locales:
+  zh:
+    openai_api_key:
+      name: "OpenAI API Key"
+      description: "OpenAI 兼容 API 密钥，用于向量化与对话模型（AI 功能必需）"
+    openai_base_url:
+      name: "OpenAI Base URL"
+      description: "OpenAI 兼容 API 地址，如 https://api.openai.com/v1"

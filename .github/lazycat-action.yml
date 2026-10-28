@@ -1,0 +1,140 @@
+version: 1
+
+project:
+  root: .
+  build_config: lzc-build.yml
+  package_file: package.yml
+  output: dist/application.lpk
+  target_arch: amd64
+
+update:
+  strategy: publish
+  allow_downgrade: false
+  version_source:
+    type: image
+    image: omnibox-backend
+
+build:
+  toolchains: []
+  run_buildscript: false
+
+images:
+  - id: omnibox-web
+    target: service
+    service: web
+    source: ghcr.io/import-ai/omnibox-web
+    channel: stable
+    sort: semver
+    tag_regex: '^\d+\.\d+\.\d+$'
+    max_tags: 50000
+    max_matching_tags: 50000
+    delivery:
+      mode: mirror
+      require_digest_match: true
+  - id: omnibox-backend
+    target: service
+    service: backend
+    source: ghcr.io/import-ai/omnibox-backend
+    channel: stable
+    sort: semver
+    tag_regex: '^\d+\.\d+\.\d+$'
+    max_tags: 50000
+    max_matching_tags: 50000
+    delivery:
+      mode: mirror
+      require_digest_match: true
+  - id: omnibox-wizard
+    target: service
+    service: wizard
+    source: ghcr.io/import-ai/omnibox-wizard
+    channel: stable
+    sort: semver
+    tag_regex: '^\d+\.\d+\.\d+$'
+    max_tags: 50000
+    max_matching_tags: 50000
+    delivery:
+      mode: mirror
+      require_digest_match: true
+  - id: omnibox-wizard-worker
+    target: service
+    service: wizard-worker
+    source: ghcr.io/import-ai/omnibox-wizard
+    channel: stable
+    sort: semver
+    tag_regex: '^\d+\.\d+\.\d+$'
+    max_tags: 50000
+    max_matching_tags: 50000
+    delivery:
+      mode: mirror
+      require_digest_match: true
+  - id: omnibox-postgres
+    target: service
+    service: postgres
+    source: docker.io/library/postgres
+    channel: stable
+    sort: semver
+    tag_regex: '^17\.\d+$'
+    max_tags: 50000
+    max_matching_tags: 50000
+    delivery:
+      mode: mirror
+      require_digest_match: true
+  - id: omnibox-minio
+    target: service
+    service: minio
+    source: docker.io/minio/minio
+    channel: date
+    sort: semver
+    tag_regex: '^RELEASE\.202[0-9]-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}Z$'
+    version_regex: '^RELEASE\.(?P<version>202[0-9])\.(?P<month>[0-9]{2})\.(?P<day>[0-9]{2})T[0-9-]+Z$'
+    version_template: '{version}.{month}.{day}'
+    max_tags: 50000
+    max_matching_tags: 50000
+    delivery:
+      mode: mirror
+      require_digest_match: true
+  - id: omnibox-weaviate
+    target: service
+    service: weaviate
+    source: docker.io/semitechnologies/weaviate
+    channel: stable
+    sort: semver
+    tag_regex: '^1\.36\.\d+$'
+    max_tags: 50000
+    max_matching_tags: 50000
+    delivery:
+      mode: mirror
+      require_digest_match: true
+  - id: omnibox-kafka
+    target: service
+    service: kafka
+    source: docker.io/bitnamilegacy/kafka
+    channel: stable
+    sort: semver
+    tag_regex: '^4\.0\.\d+$'
+    max_tags: 50000
+    max_matching_tags: 50000
+    delivery:
+      mode: mirror
+      require_digest_match: true
+  - id: omnibox-mailpit
+    target: service
+    service: mail-server
+    source: docker.io/axllent/mailpit
+    channel: stable
+    sort: semver
+    tag_regex: '^v1\.\d+\.\d+$'
+    max_tags: 50000
+    max_matching_tags: 50000
+    delivery:
+      mode: mirror
+      require_digest_match: true
+
+stores:
+  official:
+    enabled: false
+  private:
+    enabled: true
+    skip_if_version_exists: true
+    name: OmniBox
+    summary: 一站式 AI 知识库，网页/文件随手收藏，跨库提问问答
