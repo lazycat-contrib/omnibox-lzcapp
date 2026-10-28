@@ -96,7 +96,7 @@ images:
   - id: omnibox-weaviate
     target: service
     service: weaviate
-    source: docker.io/semitechnologies/weaviate
+    source: ghcr.io/dockers-x/weaviate
     channel: stable
     sort: semver
     tag_regex: '^1\.36\.\d+$'

@@ -194,8 +194,8 @@ services:
       - /lzcapp/var/minio:/bitnami/minio/data
 
   weaviate:
-    # upstream: cr.weaviate.io/semitechnologies/weaviate:1.36.0
-    image: docker.1ms.run/semitechnologies/weaviate:1.36.0
+    # upstream: ghcr.io/dockers-x/weaviate:1.36.24（搬运自 cr.weaviate.io/semitechnologies/weaviate）
+    image: ghcr.1ms.run/dockers-x/weaviate:1.36.24
     command: --host 0.0.0.0 --port 50050 --scheme http
     working_dir: /go/pkg/mod
     environment:
