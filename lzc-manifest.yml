@@ -163,8 +163,8 @@ services:
       - weaviate
 
   postgres:
-    # upstream: docker.io/library/postgres:17.5
-    image: docker.1ms.run/library/postgres:17.5
+    # upstream: docker.io/library/postgres:17.5-alpine
+    image: docker.1ms.run/library/postgres:17.5-alpine
     environment:
       - POSTGRES_DB=omnibox
       - POSTGRES_USER=omnibox
@@ -179,9 +179,8 @@ services:
       - /lzcapp/var/postgres:/var/lib/postgresql/data
 
   minio:
-    # upstream: docker.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
-    image: docker.1ms.run/minio/minio:RELEASE.2025-04-22T22-12-26Z
-    command: server /data --console-address ":9001"
+    # upstream: docker.io/bitnamilegacy/minio:2025.4.22
+    image: docker.1ms.run/bitnamilegacy/minio:2025.4.22
     environment:
       - MINIO_ROOT_USER=omnibox
       - MINIO_ROOT_PASSWORD={{ stable_secret "s3_secret" }}
@@ -192,7 +191,7 @@ services:
       retries: 5
       start_period: 30s
     binds:
-      - /lzcapp/var/minio:/data
+      - /lzcapp/var/minio:/bitnami/minio/data
 
   weaviate:
     # upstream: cr.weaviate.io/semitechnologies/weaviate:1.36.0

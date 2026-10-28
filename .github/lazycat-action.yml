@@ -73,7 +73,9 @@ images:
     source: docker.io/library/postgres
     channel: stable
     sort: semver
-    tag_regex: '^17\.\d+$'
+    tag_regex: '^17\.\d+-alpine$'
+    version_regex: '^(?P<version>17\.\d+)-alpine$'
+    version_template: '{version}.0'
     max_tags: 50000
     max_matching_tags: 50000
     delivery:
@@ -82,12 +84,10 @@ images:
   - id: omnibox-minio
     target: service
     service: minio
-    source: docker.io/minio/minio
-    channel: date
+    source: docker.io/bitnamilegacy/minio
+    channel: stable
     sort: semver
-    tag_regex: '^RELEASE\.202[0-9]-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}Z$'
-    version_regex: '^RELEASE\.(?P<version>202[0-9])\.(?P<month>[0-9]{2})\.(?P<day>[0-9]{2})T[0-9-]+Z$'
-    version_template: '{version}.{month}.{day}'
+    tag_regex: '^2025\.\d+\.\d+$'
     max_tags: 50000
     max_matching_tags: 50000
     delivery:
