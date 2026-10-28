@@ -67,14 +67,12 @@ application:
         - /*
       do:
         - src: file:///lzcapp/pkg/content/lazycat-injects/lzc-file-chooser-inject.js
-
 services:
   web:
     # upstream: ghcr.io/import-ai/omnibox-web:0.1.54
     image: ghcr.1ms.run/import-ai/omnibox-web:0.1.54
     depends_on:
       - backend
-
   backend:
     # upstream: ghcr.io/import-ai/omnibox-backend:0.1.54
     image: ghcr.1ms.run/import-ai/omnibox-backend:0.1.54
@@ -107,7 +105,6 @@ services:
       - minio
       - mail-server
       - kafka
-
   wizard:
     # upstream: ghcr.io/import-ai/omnibox-wizard:0.1.54
     image: ghcr.1ms.run/import-ai/omnibox-wizard:0.1.54
@@ -134,7 +131,6 @@ services:
       start_period: 30s
     depends_on:
       - weaviate
-
   wizard-worker:
     # upstream: ghcr.io/import-ai/omnibox-wizard:0.1.54
     image: ghcr.1ms.run/import-ai/omnibox-wizard:0.1.54
@@ -161,10 +157,9 @@ services:
     depends_on:
       - backend
       - weaviate
-
   postgres:
-    # upstream: docker.io/library/postgres:17.5-alpine
-    image: docker.1ms.run/library/postgres:17.5-alpine
+    # upstream: docker.io/library/postgres:17.11-alpine
+    image: docker.1ms.run/library/postgres:17.11-alpine
     environment:
       - POSTGRES_DB=omnibox
       - POSTGRES_USER=omnibox
@@ -177,10 +172,9 @@ services:
       start_period: 30s
     binds:
       - /lzcapp/var/postgres:/var/lib/postgresql/data
-
   minio:
-    # upstream: docker.io/bitnamilegacy/minio:2025.4.22
-    image: docker.1ms.run/bitnamilegacy/minio:2025.4.22
+    # upstream: docker.io/bitnamilegacy/minio:2025.7.23
+    image: docker.1ms.run/bitnamilegacy/minio:2025.7.23
     environment:
       - MINIO_ROOT_USER=omnibox
       - MINIO_ROOT_PASSWORD={{ stable_secret "s3_secret" }}
@@ -192,9 +186,8 @@ services:
       start_period: 30s
     binds:
       - /lzcapp/var/minio:/bitnami/minio/data
-
   weaviate:
-    # upstream: ghcr.io/dockers-x/weaviate:1.36.24（搬运自 cr.weaviate.io/semitechnologies/weaviate）
+    # upstream: ghcr.io/dockers-x/weaviate:1.36.24
     image: ghcr.1ms.run/dockers-x/weaviate:1.36.24
     command: --host 0.0.0.0 --port 50050 --scheme http
     working_dir: /go/pkg/mod
@@ -217,10 +210,9 @@ services:
       start_period: 30s
     binds:
       - /lzcapp/var/weaviate:/var/lib/weaviate
-
   kafka:
-    # upstream: docker.io/bitnamilegacy/kafka:4.0
-    image: docker.1ms.run/bitnamilegacy/kafka:4.0
+    # upstream: docker.io/bitnamilegacy/kafka:4.0.0
+    image: docker.1ms.run/bitnamilegacy/kafka:4.0.0
     user: "0:0"
     environment:
       - KAFKA_CFG_NODE_ID=0
@@ -240,17 +232,15 @@ services:
       start_period: 60s
     binds:
       - /lzcapp/var/kafka:/bitnami/kafka
-
   mail-server:
-    # upstream: docker.io/axllent/mailpit:v1.29
-    image: docker.1ms.run/axllent/mailpit:v1.29
+    # upstream: docker.io/axllent/mailpit:v1.32.0
+    image: docker.1ms.run/axllent/mailpit:v1.32.0
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 8025 || exit 1"]
       interval: 20s
       timeout: 5s
       retries: 3
       start_period: 15s
-
 usage: |
   OmniBox（小黑）是一站式 AI 知识库：浏览器插件/微信收藏网页与文件，端到端解析建索引，跨库问答与写作。
   部署时需配置 OpenAI 兼容 API（embeddings 与对话模型），AI 问答与向量化功能依赖它。
