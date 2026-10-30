@@ -1,5 +1,5 @@
 package: community.lazycat.app.omnibox
-version: 0.1.54
+version: 0.1.55
 name: OmniBox
 description: All-in-one AI knowledge hub - collect webpages and files, then ask questions across them
 min_os_version: "1.5.0"

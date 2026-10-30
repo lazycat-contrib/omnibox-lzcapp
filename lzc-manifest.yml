@@ -69,13 +69,13 @@ application:
         - src: file:///lzcapp/pkg/content/lazycat-injects/lzc-file-chooser-inject.js
 services:
   web:
-    # upstream: ghcr.io/import-ai/omnibox-web:0.1.54
-    image: ghcr.1ms.run/import-ai/omnibox-web:0.1.54
+    # upstream: ghcr.io/import-ai/omnibox-web:0.1.55
+    image: ghcr.1ms.run/import-ai/omnibox-web:0.1.55
     depends_on:
       - backend
   backend:
-    # upstream: ghcr.io/import-ai/omnibox-backend:0.1.54
-    image: ghcr.1ms.run/import-ai/omnibox-backend:0.1.54
+    # upstream: ghcr.io/import-ai/omnibox-backend:0.1.55
+    image: ghcr.1ms.run/import-ai/omnibox-backend:0.1.55
     environment:
       - ENV=prod
       - OBB_LOG_LEVELS=error,warn,log
@@ -106,8 +106,8 @@ services:
       - mail-server
       - kafka
   wizard:
-    # upstream: ghcr.io/import-ai/omnibox-wizard:0.1.54
-    image: ghcr.1ms.run/import-ai/omnibox-wizard:0.1.54
+    # upstream: ghcr.io/import-ai/omnibox-wizard:0.1.55
+    image: ghcr.1ms.run/import-ai/omnibox-wizard:0.1.55
     environment:
       - ENV=prod
       - OBW_BACKEND_BASE_URL=http://backend:8000
@@ -132,8 +132,8 @@ services:
     depends_on:
       - weaviate
   wizard-worker:
-    # upstream: ghcr.io/import-ai/omnibox-wizard:0.1.54
-    image: ghcr.1ms.run/import-ai/omnibox-wizard:0.1.54
+    # upstream: ghcr.io/import-ai/omnibox-wizard:0.1.55
+    image: ghcr.1ms.run/import-ai/omnibox-wizard:0.1.55
     environment:
       - ENV=prod
       - OBW_BACKEND_BASE_URL=http://backend:8000
